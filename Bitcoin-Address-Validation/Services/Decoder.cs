@@ -27,9 +27,9 @@
             }
 
             var mapPrefixToNetwork = new Dictionary<string, Network>{
-                                                                        { "bc", Network.mainnet },
-                                                                        { "tb", Network.testnet },
-                                                                        { "bcrt", Network.regtest }
+                                                                        { "bc", Network.MAINNET },
+                                                                        { "tb", Network.TESTNET },
+                                                                        { "bcrt", Network.REGTEST }
                                                                       };
             Network network;
             try
@@ -50,15 +50,15 @@
 
                 if (data.Count() == 20)
                 {
-                    type = AddressType.p2wpkh;
+                    type = AddressType.P2PWPKH;
                 }
                 else if (witnessVersion == 1)
                 {
-                    type = AddressType.p2tr;
+                    type = AddressType.P2TR;
                 }
                 else
                 {
-                    type = AddressType.p2wsh;
+                    type = AddressType.P2WSH;
                 }
 
                 return new AddressInfo
@@ -117,10 +117,10 @@
             var versionHex = Convert.ToInt32(version);
 
             Dictionary<int, AddressInfo> AddressTypes = new Dictionary<int, AddressInfo> {
-                                                                    {0x00, new AddressInfo {Type= AddressType.p2pkh, Network= Network.mainnet } },
-                                                                    {0x6f, new AddressInfo {Type= AddressType.p2pkh, Network= Network.testnet} },
-                                                                    {0x05, new AddressInfo {Type= AddressType.p2sh, Network= Network.mainnet } },
-                                                                    {0xc4, new AddressInfo {Type= AddressType.p2sh, Network= Network.testnet } }
+                                                                    {0x00, new AddressInfo {Type= AddressType.P2PKH, Network= Network.MAINNET } },
+                                                                    {0x6f, new AddressInfo {Type= AddressType.P2PKH, Network= Network.TESTNET} },
+                                                                    {0x05, new AddressInfo {Type= AddressType.P2SH, Network= Network.MAINNET } },
+                                                                    {0xc4, new AddressInfo {Type= AddressType.P2SH, Network= Network.TESTNET } }
                                                                 };
             bool validVersions = AddressTypes.ContainsKey(versionHex);
 

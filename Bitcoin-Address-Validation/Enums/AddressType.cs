@@ -2,10 +2,10 @@
 {
     public enum AddressType
     {
-        p2pkh,
-        p2sh,
-        p2wpkh,
-        p2wsh,
-        p2tr
+        P2PKH,
+        P2SH,
+        P2PWPKH,
+        P2WSH,
+        P2TR 
     }
 }

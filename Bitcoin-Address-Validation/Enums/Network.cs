@@ -2,8 +2,8 @@
 {
     public enum Network
     {
-        mainnet,
-        testnet,
-        regtest
+        MAINNET,
+        TESTNET,
+        REGTEST 
     }
 }
