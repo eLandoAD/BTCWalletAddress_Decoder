@@ -1,10 +1,14 @@
 ﻿namespace Bitcoin_Address_Validation.Library
 {
-    public class Lib
+    public class Bech32Converter
     {
-        string ALPHABET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
-        Dictionary<Char, byte> ALPHABET_MAP = new();
-        public Lib()
+        #region Props
+        private readonly string ALPHABET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
+        private readonly Dictionary<Char, byte> ALPHABET_MAP = new();
+        #endregion
+
+        #region Ctor
+        public Bech32Converter()
         {
             for (byte z = 0; z < ALPHABET.Length; z++)
             {
@@ -12,6 +16,8 @@
                 ALPHABET_MAP.Add(x, z);
             }
         }
+        #endregion
+
         public void Decode(string address, string encoding, int? limit, out string? prefix, out byte[]? data)
         {
             int ENCODING_CONST;
@@ -25,29 +31,32 @@
             }
             limit ??= 90;
             if (address.Length < 8)
-                throw new Exception($"Wallet {address} is too short");
-            if (address.Length > limit)
-                throw new Exception($"Wallet {address} is too short");
-
-            // don't allow mixed case
-            var lowered = address.ToLower();
-            var uppered = address.ToUpper();
-
-            if (address.Equals(lowered) && address.Equals(uppered))
             {
-                throw new Exception($"Mixed-case string  {address}");
+                throw new Exception($"Wallet {address} is too short!");
+            }
+            if (address.Length > limit)
+            {
+                throw new Exception($"Wallet {address} is too long!");
+            }
+            // does not allow shaffle cases
+            var lowered = address.ToLower();
+
+            if (address.Equals(lowered) && address.Equals(address.ToUpper()))
+            {
+                throw new Exception($"Shuffled case chars in wallet: {address}");
             }
 
             address = lowered;
 
             var split = address.LastIndexOf('1');
+
             if (split == -1)
             {
-                throw new Exception($"No separator character for {address}");
+                throw new Exception($"Missing separator character for wallet: {address}");
             }
             if (split == 0)
             {
-                throw new Exception($"Missing prefix for {address}");
+                throw new Exception($"Missing prefix for wallet: {address}");
             }
             prefix = string.Join("", address.Take(split));
 
@@ -55,7 +64,7 @@
 
             if (wordChars.Length < 6)
             {
-                throw new Exception($"Data {wordChars} is too short");
+                throw new Exception($"Too short DATA: {wordChars} for wallet: {address}");
             }
 
             int chk = PrefixChk(prefix);
@@ -67,9 +76,9 @@
 
                 if (!ALPHABET_MAP.TryGetValue(c, out byte v))
                 {
-                    throw new Exception($"Unknown character {c}");
+                    throw new Exception($"Unknown char {c}");
                 }
-                chk = polymodStep(chk) ^ v;
+                chk = PolyModeStep(chk) ^ v;
 
                 // not in the checksum?
                 if (i + 6 >= wordChars.Length)
@@ -85,45 +94,62 @@
             data = _data.ToArray();
         }
 
-        public int PrefixChk(string prefix)
+        public static byte[]? Convert5to8(byte[] bytes)
+        {
+            var result = Convert(bytes, 5, 8, false);
+            return result;
+        }
+
+        public static byte[]? Convert8to5(byte[] bytes)
+        {
+            var res = Convert(bytes, 8, 5, true);
+            return res;
+        }
+
+        private static int PrefixChk(string prefix)
         {
             var chk = 1;
             for (var i = 0; i < prefix.Length; ++i)
             {
                 var c = prefix.ElementAt(i);
-                if (c < 33 || c > 126)
+                if (c <= 32 || c >= 127)
                 {
-                    throw new Exception($"Invalid prefix ( {prefix})");
+                    throw new Exception($"Not valid prefix ({prefix})");
                 }
-                chk = polymodStep(chk) ^ (c >> 5);
+                chk = PolyModeStep(chk) ^ (c >> 5);
             }
-            chk = polymodStep(chk);
+            chk = PolyModeStep(chk);
             for (var i = 0; i < prefix.Length; ++i)
             {
                 var v = prefix.ElementAt(i);
-                chk = polymodStep(chk) ^ (v & 0x1f);
+                chk = PolyModeStep(chk) ^ (v & 0x1f);
             }
             return chk;
         }
-        private int polymodStep(int pre)
+
+        private static int PolyModeStep(int value)
         {
-            var b = pre >> 25;
-            int result = (((pre & 0x1ffffff) << 5) ^
+            var b = value >> 25;
+            int result = (((value & 0x1ffffff) << 5) ^
                 (-((b >> 0) & 1) & 0x3b6a57b2) ^
                 (-((b >> 1) & 1) & 0x26508e6d) ^
                 (-((b >> 2) & 1) & 0x1ea119fa) ^
                 (-((b >> 3) & 1) & 0x3d4233dd) ^
                 (-((b >> 4) & 1) & 0x2a1462b3));
+
             return result;
         }
 
-
-        private byte[]? convert(byte[]? data, byte inBits, byte outBits, bool pad)
+        private static byte[]? Convert(byte[]? data, byte inBits, byte outBits, bool pad)
         {
             int value = 0;
             int bits = 0;
             int maxV = (1 << outBits) - 1;
-            List<byte> result = new(); ;
+            List<byte> result = new();
+            if (data is null)
+            {
+                throw new Exception("Coneverter: received null param");
+            }
             for (var i = 0; i < data.Length; ++i)
             {
                 value = (value << inBits) | data[i];
@@ -145,31 +171,15 @@
             {
                 if (bits >= inBits)
                 {
-                    throw new Exception("Excess padding");
+                    throw new Exception("Coneverter: Excess padding");
                 }
                 int? actual = (value << (outBits - bits)) & maxV;
-                if (actual is not null && actual!=0)
+                if (actual is not null && actual != 0)
                 {
-                    throw new Exception("Non-zero padding");
+                    throw new Exception("Coneverter: Zero(0) padding ");
                 }
             }
             return result.ToArray();
         }
-        //function toWords(bytes)
-        //{
-        //    return convert(bytes, 8, 5, true);
-        //}
-        //function fromWordsUnsafe(words)
-        //{
-        //    const res = convert(words, 5, 8, false);
-        //    if (Array.isArray(res))
-        //        return res;
-        //}
-        public byte[]? FromWords(byte[] words)
-        {
-            var res = convert(words, 5, 8, false);
-            return res;
-        }
-
     }
 }
